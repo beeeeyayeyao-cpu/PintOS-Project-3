@@ -45,9 +45,10 @@ syscall_init (void) {
 	write_msr(MSR_LSTAR, (uint64_t) syscall_entry);
 	lock_init(&file_lock); // 초기화, 안하면 이상한 값 들어옴
 
-	/* The interrupt service rountine should not serve any interrupts
-	 * until the syscall_entry swaps the userland stack to the kernel
-	 * mode stack. Therefore, we masked the FLAG_FL. */
+	/* 
+		인터럽트 서비스 루틴은 syscall_entry가 사용자 영역 스택을 커널 모드 스택으로 교체하기 전까지는 어떠한 인터럽트도 처리해서는 안 된다. 
+		따라서 FLAG_FL을 마스킹했다. 
+	*/
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }

@@ -23,20 +23,19 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
-/* List of processes in THREAD_READY state, that is, processes
-   that are ready to run but not actually running. */
+/* THREAD_READY 상태인 프로세스들의 목록. 즉, 실행 준비는 되었으나 실제로는 실행되고 있지 않은 프로세스들이다. */
 static struct list ready_list;
 static struct list all_list;
 /* Idle thread. */
 static struct thread *idle_thread;
 
-/* Initial thread, the thread running init.c:main(). */
+/* 초기 스레드, init.c:main()을 실행하는 스레드. */
 static struct thread *initial_thread;
 
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-/* Thread destruction requests */
+/* 스레드 파괴 요청 */
 static struct list destruction_req;
 
 /* Statistics. */
@@ -85,26 +84,23 @@ static bool cmp_donation(const struct list_elem *a, const struct list_elem *b, v
 // setup temporal gdt first.
 static uint64_t gdt[3] = { 0, 0x00af9a000000ffff, 0x00cf92000000ffff };
 
-/* Initializes the threading system by transforming the code
-   that's currently running into a thread.  This can't work in
-   general and it is possible in this case only because loader.S
-   was careful to put the bottom of the stack at a page boundary.
+/* 현재 실행 중인 코드를 스레드로 변환하여 스레딩 시스템을 초기화합니다.
+   일반적인 상황에서는 작동할 수 없는 방식이지만, 여기서는 loader.S가
+   스택의 시작점(bottom)을 페이지 경계에 맞추도록 세심하게 설계했기에 가능합니다.
 
-   Also initializes the run queue and the tid lock.
+   또한 실행 큐(run queue)와 TID 락(tid lock)을 초기화합니다.
 
-   After calling this function, be sure to initialize the page
-   allocator before trying to create any threads with
-   thread_create().
+   이 함수를 호출한 후에는 thread_create()를 사용하여 스레드를 생성하기 전에
+   반드시 페이지 할당자(page allocator)를 초기화해야 합니다.
 
-   It is not safe to call thread_current() until this function
-   finishes. */
+   이 함수가 완료되기 전까지는 thread_current()를 호출하는 것이 안전하지 않습니다. */
 void
 thread_init (void) {
 	ASSERT (intr_get_level () == INTR_OFF);
 
-	/* Reload the temporal gdt for the kernel
-	 * This gdt does not include the user context.
-	 * The kernel will rebuild the gdt with user context, in gdt_init (). */
+	/* 커널을 위한 임시 GDT를 다시 로드한다.
+	 * 이 GDT에는 사용자 컨텍스트가 포함되어 있지 않다.
+	 * 커널은 gdt_init()에서 사용자 컨텍스트를 포함한 GDT를 새로 구축할 것이다. */
 	struct desc_ptr gdt_ds = {
 		.size = sizeof (gdt) - 1,
 		.address = (uint64_t) gdt
@@ -117,15 +113,15 @@ thread_init (void) {
 	list_init (&all_list);
 	list_init (&destruction_req);
 
-	/* Set up a thread structure for the running thread. */
+/* 실행 중인 스레드를 위한 스레드 구조를 설정한다. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
 	initial_thread->status = THREAD_RUNNING;
-	initial_thread->tid = allocate_tid ();
+	initial_thread->tid = allocate_tid (); 
 }
 
-/* Starts preemptive thread scheduling by enabling interrupts.
-   Also creates the idle thread. */
+/* 인터럽트를 활성화하여 선점형 스레드 스케줄링을 시작한다.
+   또한 유휴(idle) 스레드를 생성한다. */
 void
 thread_start (void) {
 	/* Create the idle thread. */
@@ -133,10 +129,10 @@ thread_start (void) {
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
 
-	/* Start preemptive thread scheduling. */
+/* 선점형 스레드 스케줄링을 시작합니다. */
 	intr_enable ();
 
-	/* Wait for the idle thread to initialize idle_thread. */
+/* 유휴 스레드가 idle_thread를 초기화할 때까지 기다린다. */
 	sema_down (&idle_started);
 }
 
@@ -167,21 +163,17 @@ thread_print_stats (void) {
 			idle_ticks, kernel_ticks, user_ticks);
 }
 
-/* Creates a new kernel thread named NAME with the given initial
-   PRIORITY, which executes FUNCTION passing AUX as the argument,
-   and adds it to the ready queue.  Returns the thread identifier
-   for the new thread, or TID_ERROR if creation fails.
+/* 
+	주어진 초기 우선순위(PRIORITY)를 가진, 이름이 NAME인 새로운 커널 스레드를 생성합니다. 
+	이 스레드는 AUX를 인자로 전달받아 FUNCTION을 실행하며, 준비 큐(ready queue)에 추가됩니다. 
+	생성된 스레드의 식별자(TID)를 반환하며, 생성에 실패할 경우 TID_ERROR를 반환합니다.
 
-   If thread_start() has been called, then the new thread may be
-   scheduled before thread_create() returns.  It could even exit
-   before thread_create() returns.  Contrariwise, the original
-   thread may run for any amount of time before the new thread is
-   scheduled.  Use a semaphore or some other form of
-   synchronization if you need to ensure ordering.
+   thread_start()가 호출된 상태라면, 새로운 스레드는 thread_create()가 반환되기 전에 스케줄링될 수 있습니다. 
+   심지어 thread_create()가 반환되기 전에 종료될 수도 있습니다. 
+   반대로, 새로운 스레드가 스케줄링되기 전까지 기존 스레드가 얼마든지 계속 실행될 수도 있습니다. 
+   실행 순서를 보장해야 한다면 세마포어(semaphore)나 다른 형태의 동기화 기법을 사용하십시오.
 
-   The code provided sets the new thread's `priority' member to
-   PRIORITY, but no actual priority scheduling is implemented.
-   Priority scheduling is the goal of Problem 1-3. */
+   제공된 코드는 새로운 스레드의 'priority' 멤버를 PRIORITY로 설정하지만, 실제 우선순위 기반 스케줄링은 구현되어 있지 않습니다. 우선순위 기반 스케줄링을 구현하는 것이 문제 1-3(Problem 1-3)의 목표입니다. */
 tid_t
 thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
@@ -210,8 +202,8 @@ thread_create (const char *name, int priority,
 		mlfqs_calc_priority(t);
 	}
 
-	/* Call the kernel_thread if it scheduled.
-	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
+	/* 스케줄링된 경우 kernel_thread를 호출한다.
+	 * 참고) rdi는 첫 번째 인자, rsi는 두 번째 인자이다. */
 	t->tf.rip = (uintptr_t) kernel_thread;
 	t->tf.R.rdi = (uint64_t) function;
 	t->tf.R.rsi = (uint64_t) aux;
@@ -229,12 +221,12 @@ thread_create (const char *name, int priority,
 	return tid;
 }
 
-/* Puts the current thread to sleep.  It will not be scheduled
-   again until awoken by thread_unblock().
-
-   This function must be called with interrupts turned off.  It
-   is usually a better idea to use one of the synchronization
-   primitives in synch.h. */
+/* 
+	현재 스레드를 잠재운다. 
+	이 스레드는 thread_unblock()을 통해 깨어나기 전까지는 다시 스케줄링되지 않는다.
+   	이 함수는 인터럽트가 비활성화된 상태에서 호출되어야 한다. 
+	일반적으로는 synch.h에 정의된 동기화 기본 요소(synchronization primitives) 중 하나를 사용하는 것이 더 바람직하다.
+*/
 void
 thread_block (void) {
 	ASSERT (!intr_context ());
@@ -243,14 +235,15 @@ thread_block (void) {
 	schedule ();
 }
 
-/* Transitions a blocked thread T to the ready-to-run state.
-   This is an error if T is not blocked.  (Use thread_yield() to
-   make the running thread ready.)
+/* 차단된 스레드 T를 실행 가능한(ready-to-run) 상태로 전환한다.
+   T가 차단된 상태가 아니라면 오류이다. (실행 중인 스레드를
+   실행 가능한 상태로 만들려면 thread_yield()를 사용하라.)
 
-   This function does not preempt the running thread.  This can
-   be important: if the caller had disabled interrupts itself,
-   it may expect that it can atomically unblock a thread and
-   update other data. */
+   이 함수는 실행 중인 스레드를 선점(preempt)하지 않는다.
+   이는 중요한 의미를 가질 수 있는데, 만약 호출자가 스스로 인터럽트를
+   비활성화한 상태라면, 스레드의 차단을 해제하고 다른 데이터를
+   업데이트하는 작업을 원자적(atomically)으로 수행할 수 있기를
+   기대할 수 있기 때문이다. */
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -476,19 +469,18 @@ idle (void *idle_started_ UNUSED) {
 	}
 }
 
-/* Function used as the basis for a kernel thread. */
+/* 커널 스레드의 기반이 되는 함수. */
 static void
 kernel_thread (thread_func *function, void *aux) {
 	ASSERT (function != NULL);
 
-	intr_enable ();       /* The scheduler runs with interrupts off. */
-	function (aux);       /* Execute the thread function. */
-	thread_exit ();       /* If function() returns, kill the thread. */
+	intr_enable ();       /* 스케줄러는 인터럽트가 차단된 상태에서 실행된다. */
+	function (aux);       /* 스레드 함수를 실행합니다. */
+	thread_exit ();       /* function()이 반환되면 스레드를 종료한다. */
 }
 
 
-/* Does basic initialization of T as a blocked thread named
-   NAME. */
+/* T를 NAME이라는 이름의, 차단된(blocked) 상태인 스레드로 기본 초기화한다. */
 static void
 init_thread (struct thread *t, const char *name, int priority) {
 	ASSERT (t != NULL);

@@ -75,7 +75,7 @@ struct area {
 #define ACPI_RECLAIMABLE 3
 #define APPEND_HILO(hi, lo) (((uint64_t) ((hi)) << 32) + (lo))
 
-/* Iterate on the e820 entry, parse the range of basemem and extmem. */
+/* e820 항목을 순회하며 기본 메모리(basemem)와 확장 메모리(extmem)의 범위를 파싱한다. */
 static void
 resolve_area_info (struct area *base_mem, struct area *ext_mem) {
 	struct multiboot_info *mb_info = ptov (MULTIBOOT_INFO);
@@ -114,10 +114,10 @@ resolve_area_info (struct area *base_mem, struct area *ext_mem) {
 }
 
 /*
- * Populate the pool.
- * All the pages are manged by this allocator, even include code page.
- * Basically, give half of memory to kernel, half to user.
- * We push base_mem portion to the kernel as much as possible.
+* 풀(pool)을 구성합니다.
+* 모든 페이지는 이 할당자에 의해 관리되며, 코드 페이지까지도 포함합니다.
+* 기본적으로 메모리의 절반은 커널에, 나머지 절반은 사용자 영역에 할당합니다.
+* 가능한 한 많은 양의 `base_mem` 영역을 커널에 할당합니다.
  */
 static void
 populate_pools (struct area *base_mem, struct area *ext_mem) {
@@ -234,11 +234,11 @@ split:
 	}
 }
 
-/* Initializes the page allocator and get the memory size */
+/* 페이지 할당자를 초기화하고 메모리 크기를 가져옵니다 */
 uint64_t
 palloc_init (void) {
-  /* End of the kernel as recorded by the linker.
-     See kernel.lds.S. */
+/* 링커가 기록한 커널의 끝.
+     kernel.lds.S 참조. */
 	extern char _end;
 	struct area base_mem = { .size = 0 };
 	struct area ext_mem = { .size = 0 };
@@ -284,13 +284,11 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt) {
 	return pages;
 }
 
-/* Obtains a single free page and returns its kernel virtual
-   address.
-   If PAL_USER is set, the page is obtained from the user pool,
-   otherwise from the kernel pool.  If PAL_ZERO is set in FLAGS,
-   then the page is filled with zeros.  If no pages are
-   available, returns a null pointer, unless PAL_ASSERT is set in
-   FLAGS, in which case the kernel panics. */
+/* 사용 가능한 페이지 하나를 할당받아 해당 페이지의 커널 가상 주소를 반환한다.
+   PAL_USER가 설정되어 있으면 사용자 풀(user pool)에서 페이지를 할당받고, 그렇지 않으면 커널 풀(kernel pool)에서 할당받는다.
+   FLAGS에 PAL_ZERO가 설정되어 있으면 해당 페이지를 0으로 채운다.
+   할당할 수 있는 페이지가 없는 경우 널 포인터(null pointer)를 반환한다.
+   단, FLAGS에 PAL_ASSERT가 설정되어 있는 경우에는 커널 패닉(kernel panic)을 발생시킨다. */
 void *
 palloc_get_page (enum palloc_flags flags) {
 	return palloc_get_multiple (flags, 1);

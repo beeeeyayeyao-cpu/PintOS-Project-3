@@ -58,18 +58,18 @@ static bool setup_arguments(
 static void
 stack_push(uint64_t *rsp, const void *data, size_t size);
 
-/* Starts the first userland program, called "initd", loaded from FILE_NAME.
- * The new thread may be scheduled (and may even exit)
- * before process_create_initd() returns. Returns the initd's
- * thread id, or TID_ERROR if the thread cannot be created.
- * Notice that THIS SHOULD BE CALLED ONCE. */
+/* FILE_NAME에서 불러온 첫 번째 사용자 영역(userland) 프로그램인 "initd"를 시작한다.
+ * 새로운 스레드는 process_create_initd()가 반환되기 전에 스케줄링될 수 있으며(심지어 종료될 수도 있다).
+ * initd의 스레드 ID를 반환하며, 스레드를 생성할 수 없는 경우 TID_ERROR를 반환한다.
+ * 이 함수는 반드시 한 번만 호출되어야 한다는 점에 유의하라. */
 tid_t
 process_create_initd (const char *file_name) {
     char *fn_copy;
     tid_t tid;
 
-    /* Make a copy of FILE_NAME.
-     * Otherwise there's a race between the caller and load(). */
+	/* FILE_NAME의 복사본을 만듭니다.
+     * 그렇지 않으면 호출자와 load() 사이에 경쟁 상태(race condition)가 발생할 수 있습니다. -> 왜? 비동기도 아닌데...?
+	 */
     fn_copy = palloc_get_page (0);
     if (fn_copy == NULL)
         return TID_ERROR;
@@ -92,7 +92,7 @@ process_create_initd (const char *file_name) {
 
 
 
-    /* Create a new thread to execute FILE_NAME. */
+	/* FILE_NAME을 실행하기 위한 새로운 스레드를 생성한다. */
 
     tid = thread_create (buffer, PRI_DEFAULT, initd, fn_copy);
     if (tid == TID_ERROR){
@@ -105,7 +105,7 @@ process_create_initd (const char *file_name) {
     return tid;
 }
 
-/* A thread function that launches first user process. */
+/* 첫 번째 사용자 프로세스를 시작하는 스레드 함수. */
 static void
 initd (void *f_name) {
 #ifdef VM
@@ -335,16 +335,16 @@ find_back(struct file_descriptor **fdt, struct file_descriptor *cur, int fd){
 	return -1;
 }
 
-/* Switch the current execution context to the f_name.
- * Returns -1 on fail. */
+/* 현재 실행 컨텍스트를 f_name으로 전환합니다. -> 컨텍스트가 뭐임
+ * 실패 시 -1을 반환합니다. */
 int
 process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
 
-	/* We cannot use the intr_frame in the thread structure.
-	 * This is because when current thread rescheduled,
-	 * it stores the execution information to the member. */
+	/* 스레드 구조체 내의 intr_frame은 사용할 수 없습니다.
+	 * 이는 현재 스레드가 다시 스케줄링될 때,
+	 * 해당 멤버에 실행 정보를 저장하기 때문입니다. */
 	struct intr_frame _if;
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
@@ -352,10 +352,10 @@ process_exec (void *f_name) {
 
 	struct thread *t = thread_current();
 
-	/* We first kill the current context */
+	/* 우선 현재 컨텍스트를 종료합니다 */
 	process_cleanup ();
 
-	/* And then load the binary */
+	/* 그런 다음 바이너리를 로드합니다 */
 	char* save_ptr;
 	char* buffer;
 	char* letter;
@@ -459,15 +459,13 @@ stack_push(uint64_t *rsp, const void *data, size_t size){
 
 
 
-/* Waits for thread TID to die and returns its exit status.  If
- * it was terminated by the kernel (i.e. killed due to an
- * exception), returns -1.  If TID is invalid or if it was not a
- * child of the calling process, or if process_wait() has already
- * been successfully called for the given TID, returns -1
- * immediately, without waiting.
+/* TID인 스레드가 종료될 때까지 기다린 후, 해당 스레드의 종료 상태를 반환한다.
+ * 만약 커널에 의해 종료된 경우(예: 예외 발생으로 인해 강제 종료된 경우)에는 -1을 반환한다.
+ * TID가 유효하지 않거나, 호출한 프로세스의 자식 프로세스가 아니거나,
+ * 혹은 해당 TID에 대해 이미 process_wait()가 성공적으로 호출된 적이 있다면,
+ * 기다리지 않고 즉시 -1을 반환한다.
  *
- * This function will be implemented in problem 2-2.  For now, it
- * does nothing. */
+ * 이 함수는 과제 2-2에서 구현할 예정이다. 현재는 아무런 동작도 수행하지 않는다. */
 int
 process_wait (tid_t child_tid) {
 	struct thread *cur_thread = thread_current ();
@@ -629,10 +627,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
 		bool writable);
 
-/* Loads an ELF executable from FILE_NAME into the current thread.
- * Stores the executable's entry point into *RIP
- * and its initial stack pointer into *RSP.
- * Returns true if successful, false otherwise. */
+/* FILE_NAME에 지정된 ELF 실행 파일을 현재 스레드로 로드한다.
+ * 실행 파일의 진입점(entry point)을 *RIP에 저장하고,
+ * 초기 스택 포인터를 *RSP에 저장한다.
+ * 성공하면 true를, 그렇지 않으면 false를 반환한다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();

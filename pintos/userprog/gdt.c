@@ -77,8 +77,7 @@ struct desc_ptr gdt_ds = {
 	.address = (uint64_t) gdt
 };
 
-/* Sets up a proper GDT.  The bootstrap loader's GDT didn't
-   include user-mode selectors or a TSS, but we need both now. */
+/* 적절한 GDT를 설정한다. 부트스트랩 로더의 GDT에는 사용자 모드 셀렉터나 TSS가 포함되어 있지 않았지만, 이제는 둘 다 필요하다. */
 void
 gdt_init (void) {
 	/* Initialize GDT. */

@@ -35,15 +35,13 @@
 static bool cmp_sema_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
 static void nest_donate_priority(void);
 static bool cmp_list_elem(const struct list_elem *a, const struct list_elem *b, void *aux);
-/* Initializes semaphore SEMA to VALUE.  A semaphore is a
-   nonnegative integer along with two atomic operators for
-   manipulating it:
+/* 
+	세마포어 SEMA를 VALUE 값으로 초기화한다. 
+	세마포어는 음수가 아닌 정수이며, 이를 조작하기 위한 두 가지 원자적(atomic) 연산을 갖는다:
 
-   - down or "P": wait for the value to become positive, then
-   decrement it.
+   - down 또는 "P": 값이 양수가 될 때까지 기다린 후, 값을 감소시킨다.
 
-   - up or "V": increment the value (and wake up one waiting
-   thread, if any). */
+   - up 또는 "V": 값을 증가시킨다(이때 대기 중인 스레드가 있다면 그중 하나를 깨운다). */
 void
 sema_init (struct semaphore *sema, unsigned value) {
 	ASSERT (sema != NULL);
@@ -52,14 +50,12 @@ sema_init (struct semaphore *sema, unsigned value) {
 	list_init (&sema->waiters);
 }
 
-/* Down or "P" operation on a semaphore.  Waits for SEMA's value
-   to become positive and then atomically decrements it.
+/* 세마포어에 대한 'Down' 또는 'P' 연산. SEMA의 값이 양수가 될 때까지 기다린 후, 원자적으로(atomically) 해당 값을 감소시킨다.
 
-   This function may sleep, so it must not be called within an
-   interrupt handler.  This function may be called with
-   interrupts disabled, but if it sleeps then the next scheduled
-   thread will probably turn interrupts back on. This is
-   sema_down function. */
+   이 함수는 슬립(sleep) 상태에 들어갈 수 있으므로, 인터럽트 핸들러 내부에서 호출해서는 안 된다. 
+   인터럽트가 비활성화된 상태에서도 이 함수를 호출할 수는 있으나, 만약 함수가 슬립 상태에 들어가게 되면 다음에 스케줄링되는 스레드가 인터럽트를 다시 활성화할 가능성이 높다. 
+   이것이 sema_down 함수이다. 
+*/
 void
 sema_down (struct semaphore *sema) {
 	enum intr_level old_level;
@@ -217,12 +213,10 @@ lock_acquire (struct lock *lock) {
 		lock->holder = cur;
 }
 
-/* Tries to acquires LOCK and returns true if successful or false
-   on failure.  The lock must not already be held by the current
-   thread.
+/* LOCK 획득을 시도하며, 성공 시 true를, 실패 시 false를 반환한다.
+   현재 스레드가 이미 해당 락을 보유하고 있어서는 안 된다.
 
-   This function will not sleep, so it may be called within an
-   interrupt handler. */
+   이 함수는 슬립(sleep) 상태로 들어가지 않으므로, 인터럽트 핸들러 내에서 호출할 수 있다. */
 bool
 lock_try_acquire (struct lock *lock) {
 	bool success;
@@ -236,12 +230,11 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
-/* Releases LOCK, which must be owned by the current thread.
-   This is lock_release function.
+/* 현재 스레드가 소유하고 있는 LOCK을 해제한다.
+   이 함수는 lock_release이다.
 
-   An interrupt handler cannot acquire a lock, so it does not
-   make sense to try to release a lock within an interrupt
-   handler. */
+   인터럽트 핸들러는 락을 획득할 수 없으므로,
+   인터럽트 핸들러 내부에서 락을 해제하려는 시도는 의미가 없다. */
 void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
