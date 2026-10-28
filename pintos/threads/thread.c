@@ -270,18 +270,18 @@ thread_name (void) {
 	return thread_current ()->name;
 }
 
-/* Returns the running thread.
-   This is running_thread() plus a couple of sanity checks.
-   See the big comment at the top of thread.h for details. */
+/* 현재 실행 중인 스레드를 반환합니다.
+   running_thread()에 몇 가지 무결성 검사를 추가한 것입니다.
+   자세한 내용은 thread.h 상단의 상세 주석을 참조하십시오. */
 struct thread *
 thread_current (void) {
 	struct thread *t = running_thread ();
 
-	/* Make sure T is really a thread.
-	   If either of these assertions fire, then your thread may
-	   have overflowed its stack.  Each thread has less than 4 kB
-	   of stack, so a few big automatic arrays or moderate
-	   recursion can cause stack overflow. */
+/* T가 실제로 스레드인지 확인한다.
+   이 단정문(assertion) 중 하나라도 실패한다면, 해당 스레드에서
+   스택 오버플로우가 발생했을 수 있다. 각 스레드는 4kB 미만의
+   스택 공간을 가지므로, 크기가 큰 자동 배열을 여러 개 사용하거나
+   적당한 수준의 재귀 호출만으로도 스택 오버플로우가 발생할 수 있다. */
 	ASSERT (is_thread (t));
 	ASSERT (t->status == THREAD_RUNNING);
 
