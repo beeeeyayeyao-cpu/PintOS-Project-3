@@ -23,6 +23,7 @@ static const struct page_operations uninit_ops = {
 };
 
 /* DO NOT MODIFY this function */
+//페이지 초기화
 void
 uninit_new (struct page *page, void *va, bool writable, vm_initializer *init,
 		enum vm_type type, void *aux,

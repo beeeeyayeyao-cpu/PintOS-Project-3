@@ -629,10 +629,10 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
 		bool writable);
 
-/* Loads an ELF executable from FILE_NAME into the current thread.
- * Stores the executable's entry point into *RIP
- * and its initial stack pointer into *RSP.
- * Returns true if successful, false otherwise. */
+/* FILE_NAME에 지정된 ELF 실행 파일을 현재 스레드로 로드한다.
+ * 실행 파일의 진입점(entry point)을 *RIP에 저장하고,
+ * 초기 스택 포인터를 *RSP에 저장한다.
+ * 성공하면 true를, 그렇지 않으면 false를 반환한다. */
 static bool
 load (const char *file_name, struct intr_frame *if_) {
 	struct thread *t = thread_current ();
@@ -898,6 +898,7 @@ install_page (void *upage, void *kpage, bool writable) {
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
+//
 static bool
 lazy_load_segment (struct page *page, void *aux_) {
 	struct load_aux *aux = (struct load_aux *)aux_;
@@ -914,25 +915,24 @@ lazy_load_segment (struct page *page, void *aux_) {
 		return false;
 	}
 
-	memset(page->frame->kva, 0, zero_bytes);
+	memset(page->frame->kva, 0, zero_bytes); //커널 가상 주소에서 0까지 0으로 초기화
 	
 	return true;
 }
 
-/* Loads a segment starting at offset OFS in FILE at address
- * UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
- * memory are initialized, as follows:
+/* FILE의 오프셋 OFS에서 시작하는 세그먼트를 주소 UPAGE에 로드한다.
+ * 총 READ_BYTES + ZERO_BYTES 바이트의 가상 메모리가 다음과 같이 초기화된다:
  *
- * - READ_BYTES bytes at UPAGE must be read from FILE
- * starting at offset OFS.
+ * - UPAGE부터 시작하는 READ_BYTES 바이트는 FILE의 오프셋 OFS에서 읽어와야 한다.
  *
- * - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
+ * - UPAGE + READ_BYTES부터 시작하는 ZERO_BYTES 바이트는 0으로 채워져야 한다.
  *
- * The pages initialized by this function must be writable by the
- * user process if WRITABLE is true, read-only otherwise.
+ * 이 함수에 의해 초기화된 페이지는 WRITABLE이 참(true)이면 사용자 프로세스가
+ * 쓸 수 있어야(writable) 하며, 그렇지 않은 경우에는 읽기 전용(read-only)이어야 한다.
  *
- * Return true if successful, false if a memory allocation error
- * or disk read error occurs. */
+ * 성공하면 참(true)을 반환하고, 메모리 할당 오류나 디스크 읽기 오류가 발생하면
+ * 거짓(false)을 반환한다. */
+//프로세스 로드
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
@@ -941,9 +941,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 	ASSERT (ofs % PGSIZE == 0);
 
 	while (read_bytes > 0 || zero_bytes > 0) {
-		/* Do calculate how to fill this page.
-		 * We will read PAGE_READ_BYTES bytes from FILE
-		 * and zero the final PAGE_ZERO_BYTES bytes. */
+		/* 이 페이지를 어떻게 채울지 계산한다.
+		 * 파일(FILE)에서 PAGE_READ_BYTES 바이트만큼 읽어오고,
+		 * 마지막 PAGE_ZERO_BYTES 바이트는 0으로 채운다. */
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 

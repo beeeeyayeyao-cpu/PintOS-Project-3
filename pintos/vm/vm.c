@@ -49,19 +49,20 @@ static struct frame *vm_get_victim (void);
 static bool vm_do_claim_page (struct page *page);
 static struct frame *vm_evict_frame (void);
 
-/* Create the pending page object with initializer. If you want to create a
- * page, do not create it directly and make it through this function or
- * `vm_alloc_page`. */
+/* 초기화 함수를 사용하여 보류 중인(pending) 페이지 객체를 생성합니다.
+ * 페이지를 생성해야 할 경우, 직접 생성하지 말고 이 함수나
+ * `vm_alloc_page`를 통해 생성하십시오. */
+//페이지 정보 등록
 bool
 vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		vm_initializer *init, void *aux) {
-	ASSERT (VM_TYPE(type) != VM_UNINIT)
+	ASSERT (VM_TYPE(type) != VM_UNINIT) // VM_UNINIT은 uninit_new()에서만 사용 가능.
 
-	struct supplemental_page_table *spt = &thread_current ()->spt;
-	/* Check wheter the upage is already occupied or not. */
-	struct page *page = malloc(sizeof(struct page));
-	if (spt_find_page (spt, upage) == NULL) {	
-		switch (VM_TYPE(type)) // VM_ANON, VM_FILE을 제외한 나머지는 전부 uninit_으로 처리.
+	struct supplemental_page_table *spt = &thread_current ()->spt; //현제 프로세스의 spt 가져오기
+
+	struct page *page = malloc(sizeof(struct page)); // 새 페이지 생성
+	if (spt_find_page (spt, upage) == NULL) { //spt에 upage가 존재하지 않는 경우
+		switch (VM_TYPE(type)) // 페이지 타입에 따라 초기화 설정
 		{
 			case VM_ANON:
 				uninit_new(page, upage, writable, init, type, aux, anon_initializer);
@@ -95,7 +96,7 @@ spt_insert_page (struct supplemental_page_table *spt UNUSED,
 	
 	if (spt_find_page(spt, page->va) == NULL)
 	{
-		if (hash_insert(&spt->hash, &page->hash_elem) == NULL)
+		if (hash_insert(spt->hash, &page->hash_elem) == NULL)
 			succ = true;
 	}
 
@@ -127,10 +128,10 @@ vm_evict_frame (void) {
 	return NULL;
 }
 
-/* palloc() and get frame. If there is no available page, evict the page
- * and return it. This always return valid address. That is, if the user pool
- * memory is full, this function evicts the frame to get the available memory
- * space.*/
+/* palloc()을 통해 프레임을 할당받는다. 
+	사용 가능한 페이지가 없다면, 기존 페이지를 내보내고(evict) 해당 페이지를 반환한다. 
+	이 함수는 항상 유효한 주소를 반환한다. 즉, 사용자 풀(user pool) 메모리가 가득 찼을 경우, 
+	이 함수는 프레임을 내보내어 사용 가능한 메모리 공간을 확보한다. */
 static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
@@ -152,11 +153,13 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
-/* Return true on success */
+
+
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED, bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	return vm_claim_page (addr);
 }
+
 
 /* Free the page.
  * DO NOT MODIFY THIS FUNCTION. */
@@ -213,8 +216,8 @@ page_less (const struct hash_elem *a_,
   return a->va < b->va;
 }
 
-void
-supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+
+void supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 	struct hash *pages;
 	if(!hash_init (pages, page_hash, page_less, NULL)) exit(-1);
 	spt->hash = pages;
@@ -233,9 +236,8 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	 * TODO: writeback all the modified contents to the storage. */  
 }
 
-void frame_init() // 여기도 끝난거같은디염
+void frame_init()
 {
-  //frame_table = malloc(sizeof(struct list) * (void *));
   list_init(&frame_table);
   lock_init(&frame_table_lock);
   // lock_init 필요
