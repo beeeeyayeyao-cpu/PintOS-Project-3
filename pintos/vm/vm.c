@@ -146,6 +146,10 @@ vm_get_frame (void) {
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr UNUSED) {
+	struct thread *curr = thread_current();
+	uintptr_t rsp = curr->rsp;
+	void * vpage = pg_round_down(addr);
+	vm_alloc_page_with_initializer(VM_ANON, vpage, true, NULL, NULL);
 }
 
 /* Handle the fault on write_protected page */
@@ -157,8 +161,9 @@ vm_handle_wp (struct page *page UNUSED) {
 
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED, bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	return vm_claim_page (addr);
+	return vm_claim_page (f, addr, user);
 }
+
 
 
 /* Free the page.
@@ -166,17 +171,39 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED, bool user U
 void
 vm_dealloc_page (struct page *page) {
 	destroy (page);
+
+
 	free (page);
 }
 
 /* Claim the page that allocate on VA. */
 bool
-vm_claim_page (void *va UNUSED) {
+vm_claim_page (struct intr_frame *f UNUSED, void *addr UNUSED, bool user UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	struct page *page = spt_find_page(spt, va);
+	struct page *page = spt_find_page(spt, addr);
 
-	if(page == NULL){
-		exit(-1);
+	if(page == NULL)
+	{
+		if (!user)
+		{
+			struct thread *curr = thread_current();
+			uintptr_t rsp = curr->rsp;
+			if (rsp != NULL)
+			{
+				if (addr < USER_STACK && addr >= USER_STACK - (1 << 20) && addr >= rsp - 8) {
+					vm_stack_growth(addr);
+					page = spt_find_page(spt, addr);
+				}
+			}
+		}
+		else if (user)
+		{
+			if (addr < USER_STACK && addr >= USER_STACK - (1 << 20) && addr >= f->rsp - 8) {
+				vm_stack_growth(addr);
+				page = spt_find_page(spt, addr);
+			}
+		}
+		else exit(-1);
 	}
 
 	return vm_do_claim_page (page);
